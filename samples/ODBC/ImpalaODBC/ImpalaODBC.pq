@@ -1,7 +1,8 @@
 ﻿[Version = "1.0.0"]
 section ImpalaODBC;
 
-DefaultPort = 21050;
+DefaultPort = 443;
+EnableTraceOutput = true;
 
 [DataSource.Kind = "ImpalaODBC", Publish = "ImpalaODBC.UI"]
 shared ImpalaODBC.Databases = (server as text, optional options as record) as table =>
@@ -10,7 +11,7 @@ shared ImpalaODBC.Databases = (server as text, optional options as record) as ta
         HostAddress = Address[Host],
         HostPort = Address[Port],
         ConnectionString = [
-            Driver = "Cloudera Impala ODBC Driver",
+            Driver = "Cloudera ODBC Driver for Impala",
             Host = HostAddress,
             Port = HostPort,
             // We need a database name that doesn't exist in the server, because if the user doesn't have access to
@@ -92,10 +93,15 @@ GetCredentialConnectionString = () as record =>
         // to indicate that encryption isn't enabled for this source. If the user then
         // chooses to establish an unencrypted connection, Credential[EncryptConnection]
         // will be set to false on the subsequent connection attempt.
-        EncryptConnection = Credential[EncryptConnection]?,
-        SSL = if EncryptConnection = null or EncryptConnection = true then 1 else 0
+        // EncryptConnection = Credential[EncryptConnection]?,
+        // SSL = if EncryptConnection = null or EncryptConnection = true then 1 else 0
+        // SASL=1, HTTP=2
+        thrifttransport = 2,
+        SSL = 1,
+        ca_cert = "C:\Program Files\Cloudera ODBC Driver for Impala\lib\cacerts.pem",
+        protocol = "hs2-http"
     in
-        ConnectionString & [SSL = SSL, UseSystemTrustStore = SSL];
+        ConnectionString & [SSL = SSL, UseSystemTrustStore = SSL, thrifttransport = thrifttransport, ca_cert = ca_cert, protocol = protocol];
 
 RemoveComplexColumns = (data as table) as table =>
     let
